@@ -50,3 +50,6 @@ def dataPrepare(fileName,saveMatDir='Data',qs=1,ptNamePrefix='',offset='min',qle
     hdf5storage.savemat(os.path.join(saveMatDir,ptName+'.mat'), patchFile, format='7.3', oned_as='row', store_python_metadata=True)
     DQpt = (pt*qs+offset) 
     return os.path.join(saveMatDir,ptName+'.mat'),DQpt,refPt
+    # patchFile: 需要用的数据，包含oct code, 层级, 孩子数量, 位置
+    # Location: 没有量化的PC
+    # Info: meta信息, 杂项

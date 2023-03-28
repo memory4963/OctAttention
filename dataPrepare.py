@@ -21,8 +21,8 @@ def makedFile(dir):
 if __name__=="__main__":
 
 #####For KITTI######
-    oriDir = '/semanticKITTI/dataset/sequences/'
-    outDir = 'Data/Lidar/train/'
+    oriDir = 'data/lidar/sequences/'
+    outDir = 'data/lidar/train/'
     ptNamePrefix = 'Kitti_'
 
     printl = CPrintl('Preparedata/makedFileLidar.log')

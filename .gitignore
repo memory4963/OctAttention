@@ -8,6 +8,9 @@ __pycache__
 /.idea
 /.*
 /log
-/Exp
+exp/
+Exp/
 data/
+Data/
 /temp
+test.ipynb

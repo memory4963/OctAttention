@@ -14,12 +14,12 @@ import pt as pointCloud
 ## decoder.py and test.py rely on this model here
 ## do not move this lines to somewhere else
 model = model.to(device)
-saveDic = reload(None,'modelsave/lidar/encoder_epoch_00801460.pth',multiGPU=False)
+saveDic = reload(None,'exp/kitti/checkpoint/encoder_epoch_00801460.pth',multiGPU=False)
 model.load_state_dict(saveDic['encoder'])
 
 ###########LiDar##############
 GPCC_MULTIPLE = 2**20
-list_orifile = ['file/Ply/11_000000.bin']
+list_orifile = ['data/lidar/sequences/11/velodyne/000000.bin']
 if __name__=="__main__":
     printl = CPrintl(expName+'/encoderPLY.txt')
     printl('_'*50,'OctAttention V0.4','_'*50)

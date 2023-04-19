@@ -10,7 +10,10 @@ __pycache__
 /log
 exp/
 Exp/
-data/
+data
 Data/
 /temp
 test.ipynb
+outputs/
+unittest.py
+output/

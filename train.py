@@ -1,14 +1,3 @@
-'''
-Author: fuchy@stu.pku.edu.cn
-Date: 2021-09-20 08:06:11
-LastEditTime: 2021-09-20 23:53:24
-LastEditors: fcy
-Description: the training file
-             see networkTool.py to set up the parameters
-             will generate training log file loss.log and checkpoint in folder 'expName'
-FilePath: /compression/octAttention.py
-All rights reserved.
-'''
 import math
 import torch
 import torch.nn as nn
@@ -17,110 +6,13 @@ import datetime
 from networkTool import *
 from torch.utils.tensorboard import SummaryWriter
 from models.attentionModel import TransformerLayer,TransformerModule
+import dataset
+import torch.utils.data as data
+import time
+import os
+import hydra
+from omegaconf import DictConfig, OmegaConf
 
-##########################
-
-ntokens = 255 # the size of vocabulary
-ninp = 4*(128+4+6) # embedding dimension
-
-
-nhid = 300 # the dimension of the feedforward network model in nn.TransformerEncoder
-nlayers = 3 # the number of nn.TransformerEncoderLayer in nn.TransformerEncoder
-nhead = 4 # the number of heads in the multiheadattention models
-dropout = 0 # the dropout value
-batchSize = 32
-
-
-
-class TransformerModel(nn.Module):
-
-    def __init__(self, ntoken, ninp, nhead, nhid, nlayers, dropout=0.5):
-        super(TransformerModel, self).__init__()
-        self.model_type = 'Transformer'
-
-        self.pos_encoder = PositionalEncoding(ninp, dropout)
-
-        encoder_layers = TransformerLayer(ninp, nhead, nhid, dropout)
-        self.transformer_encoder = TransformerModule(encoder_layers, nlayers)
-
-        self.encoder = nn.Embedding(ntoken, 128)
-        self.encoder1 = nn.Embedding(MAX_OCTREE_LEVEL+1, 6)
-        self.encoder2 = nn.Embedding(9, 4)
-
-        self.ninp = ninp
-        self.act = nn.ReLU()
-        self.decoder0 = nn.Linear(ninp, ninp)
-        self.decoder1 = nn.Linear(ninp, ntoken)
-        self.init_weights()
-
-    def generate_square_subsequent_mask(self, sz):
-        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
-        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
-        return mask
-
-    def init_weights(self):
-        initrange = 0.1
-        self.encoder.weight.data = nn.init.xavier_normal_(self.encoder.weight.data )
-        self.decoder0.bias.data.zero_()
-        self.decoder0.weight.data= nn.init.xavier_normal_(self.decoder0.weight.data )
-        self.decoder1.bias.data.zero_()
-        self.decoder1.weight.data = nn.init.xavier_normal_(self.decoder1.weight.data )
-    def forward(self, src, src_mask, dataFeat):
-        bptt = src.shape[0]
-        batch = src.shape[1]
-
-        oct = src[:,:,:,0] #oct[bptt,batchsize,FeatDim(levels)] [0~254]
-        level = src[:,:,:,1]  # [0~12] 0 for padding data
-        octant = src[:,:,:,2] # [0~8] 0 for padding data
-
-        # assert oct.min()>=0 and oct.max()<255
-        # assert level.min()>=0 and level.max()<=12
-        # assert octant.min()>=0 and octant.max()<=8
-        
-        level -= torch.clip(level[:,:,-1:] - 10,0,None)# the max level in traning dataset is 10        
-        torch.clip_(level,0,MAX_OCTREE_LEVEL) 
-        aOct = self.encoder(oct.long()) #a[bptt,batchsize,FeatDim(levels),EmbeddingDim]
-        aLevel = self.encoder1(level.long())
-        aOctant = self.encoder2(octant.long())
-
-        a = torch.cat((aOct,aLevel,aOctant),3)
-
-        a = a.reshape((bptt,batch,-1)) 
-        
-        # src = self.ancestor_attention(a)
-        src = a.reshape((bptt,a.shape[1],self.ninp))* math.sqrt(self.ninp)
-
-        # src = self.pos_encoder(src)
-        output = self.transformer_encoder(src, src_mask)
-        output = self.decoder1(self.act(self.decoder0(output)))
-        return output
-
-######################################################################
-# ``PositionalEncoding`` module 
-#
-
-class PositionalEncoding(nn.Module):
-
-    def __init__(self, d_model, dropout=0.1, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        self.dropout = nn.Dropout(p=dropout)
-
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        x = x + self.pe[:x.size(0), :]
-        return self.dropout(x)
-
-######################################################################
-# Functions to generate input and target sequence
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
 
 def get_batch(source, i):
     seq_len = min(bptt, len(source) - 1 - i)
@@ -138,10 +30,6 @@ def get_batch(source, i):
 #
 model = TransformerModel(ntokens, ninp, nhead, nhid, nlayers, dropout).to(device)
 if __name__=="__main__":
-    import dataset
-    import torch.utils.data as data
-    import time
-    import os
 
     epochs = 8 # The number of epochs
     best_model = None
@@ -231,3 +119,72 @@ if __name__=="__main__":
         printl('-' * 89)
         scheduler.step()
         printl('-' * 89)
+
+@hydra.main(version_base=None, config_path="config", config_name="obj")
+def main(cfg : DictConfig) -> None:
+    pass
+
+if __name__ == '__main__':
+    main()
+
+
+# import torch
+# from torch import nn
+# from torch.nn import functional as F
+# from torch.utils.data import DataLoader
+# from torch.utils.data import random_split
+# from torchvision.datasets import MNIST
+# from torchvision import transforms
+# import pytorch_lightning as pl
+
+# class LitAutoEncoder(pl.LightningModule):
+# 	def __init__(self):
+# 		super().__init__()
+# 		self.encoder = nn.Sequential(
+#       nn.Linear(28 * 28, 64),
+#       nn.ReLU(),
+#       nn.Linear(64, 3))
+# 		self.decoder = nn.Sequential(
+#       nn.Linear(3, 64),
+#       nn.ReLU(),
+#       nn.Linear(64, 28 * 28))
+
+# 	def forward(self, x):
+# 		embedding = self.encoder(x)
+# 		return embedding
+
+# 	def configure_optimizers(self):
+# 		optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+# 		return optimizer
+
+# 	def training_step(self, train_batch, batch_idx):
+# 		x, y = train_batch
+# 		x = x.view(x.size(0), -1)
+# 		z = self.encoder(x)    
+# 		x_hat = self.decoder(z)
+# 		loss = F.mse_loss(x_hat, x)
+# 		self.log('train_loss', loss)
+# 		return loss
+
+# 	def validation_step(self, val_batch, batch_idx):
+# 		x, y = val_batch
+# 		x = x.view(x.size(0), -1)
+# 		z = self.encoder(x)
+# 		x_hat = self.decoder(z)
+# 		loss = F.mse_loss(x_hat, x)
+# 		self.log('val_loss', loss)
+
+# # data
+# dataset = MNIST('', train=True, download=True, transform=transforms.ToTensor())
+# mnist_train, mnist_val = random_split(dataset, [55000, 5000])
+
+# train_loader = DataLoader(mnist_train, batch_size=32)
+# val_loader = DataLoader(mnist_val, batch_size=32)
+
+# # model
+# model = LitAutoEncoder()
+
+# # training
+# trainer = pl.Trainer(gpus=4, num_nodes=8, precision=16, limit_train_batches=0.5)
+# trainer.fit(model, train_loader, val_loader)
+    

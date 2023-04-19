@@ -1,0 +1,9 @@
+model:
+  max_octree_level: 12
+  context_size: 1024
+  token_num: 255
+  layer_num: 3
+  head_num: 4
+  embed_dimension: 552 # 4*(128+4+6)
+  hidden_dimension: 300
+  pos_max_len: 5000

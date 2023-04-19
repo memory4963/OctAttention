@@ -108,7 +108,7 @@ if __name__=="__main__":
 
     for oriFile in list_orifile: # from encoder.py
         ptName = os.path.basename(oriFile)[:-4]
-        matName = 'Data/testPly/'+ptName+'.mat'
+        matName = 'output/testPly/'+ptName+'.mat'
         binfile = expName+'/data/'+ptName+'.bin'
         cell,mat =matloader(matName)
 

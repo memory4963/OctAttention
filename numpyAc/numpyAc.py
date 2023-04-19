@@ -1,7 +1,6 @@
 import os
 import torch
 import numpy as np
-from torch.autograd.grad_mode import F
 from torch.utils.cpp_extension import load
 
 
